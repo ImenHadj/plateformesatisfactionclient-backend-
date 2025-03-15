@@ -1,21 +1,19 @@
 package com.example.plateformesatisfactionclient.Controller;
 
-import com.example.plateformesatisfactionclient.Entity.User;
 import com.example.plateformesatisfactionclient.Repository.RoleRepository;
+import com.example.plateformesatisfactionclient.Security.jwt.JwtUtil;
 import com.example.plateformesatisfactionclient.Service.Authservice;
 import com.example.plateformesatisfactionclient.Service.Emailservice;
 import com.example.plateformesatisfactionclient.payload.request.LoginRequest;
 import com.example.plateformesatisfactionclient.payload.request.SignupRequest;
-import com.example.plateformesatisfactionclient.payload.response.JwtResponse;
 import com.google.api.client.googleapis.auth.oauth2.GoogleIdToken;
 import com.google.api.client.googleapis.auth.oauth2.GoogleIdTokenVerifier;
 import com.google.api.client.googleapis.javanet.GoogleNetHttpTransport;
 import com.google.api.client.http.HttpTransport;
 import com.google.api.client.json.JsonFactory;
 import com.google.api.client.json.gson.GsonFactory;
-import jakarta.mail.*;
-import jakarta.mail.internet.InternetAddress;
-import jakarta.mail.internet.MimeMessage;
+import jakarta.servlet.http.Cookie;
+import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -26,8 +24,6 @@ import jakarta.validation.Valid;
 import java.io.IOException;
 import java.security.GeneralSecurityException;
 import java.util.*;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 @RestController
@@ -42,17 +38,26 @@ public class AuthController {
     private RoleRepository roleRepository;
     @Autowired
     private Emailservice emailService;
+    @Autowired
+    private JwtUtil jwtUtil;
 
 
     public AuthController(Authservice authService) {
         this.authService = authService;
     }
 
-    @PostMapping("/signin")
+   /* @PostMapping("/signin")
     public ResponseEntity<JwtResponse> authenticateUser(@Valid @RequestBody LoginRequest loginRequest) {
         JwtResponse jwtResponse = authService.authenticateUser(loginRequest);
         return ResponseEntity.ok(jwtResponse);
+    }*/
+
+    @PostMapping("/signin")
+    public ResponseEntity<String> authenticateUser(@Valid @RequestBody LoginRequest loginRequest, HttpServletResponse response) {
+        authService.authenticateUser(loginRequest, response);
+        return ResponseEntity.ok("Connexion réussie !");
     }
+
 
     @PostMapping("/signup")
     public ResponseEntity<String> registerUser(@Valid @RequestBody SignupRequest signUpRequest) {
@@ -99,7 +104,7 @@ public class AuthController {
         }
 
     }
-    @PostMapping("/google")
+   /* @PostMapping("/google")
     public ResponseEntity<String> authenticateWithGoogle(@RequestBody Map<String, String> request) {
         try {
             String idTokenString = request.get("idToken");
@@ -124,5 +129,44 @@ public class AuthController {
         } catch (GeneralSecurityException | IOException e) {
             return ResponseEntity.status(500).body("Error during token verification: " + e.getMessage());
         }
-    }
+    }*/
+   @PostMapping("/google")
+   public ResponseEntity<String> authenticateWithGoogle(@RequestBody Map<String, String> request, HttpServletResponse response) {
+       try {
+           String idTokenString = request.get("idToken");
+
+           if (idTokenString == null || idTokenString.isEmpty()) {
+               return ResponseEntity.status(400).body("ID token is missing or empty");
+           }
+
+           HttpTransport transport = GoogleNetHttpTransport.newTrustedTransport();
+           JsonFactory jsonFactory = GsonFactory.getDefaultInstance();
+           GoogleIdTokenVerifier verifier = new GoogleIdTokenVerifier.Builder(transport, jsonFactory)
+                   .setAudience(Collections.singletonList(CLIENT_ID))
+                   .build();
+
+           GoogleIdToken idToken = verifier.verify(idTokenString);
+
+           if (idToken != null) {
+               // Validation du token réussie. Créer un JWT et l'ajouter dans un cookie.
+               String username = idToken.getPayload().getEmail(); // Utilisez l'email comme identifiant pour l'utilisateur.
+               String jwt = jwtUtil.generateToken(username); // Générer un JWT pour l'utilisateur (assurez-vous que votre méthode de génération de JWT est correcte).
+
+               // Créer un cookie JWT
+               Cookie cookie = new Cookie("jwt", jwt);
+               cookie.setHttpOnly(true);  // Empêche l'accès au cookie via JavaScript
+               cookie.setSecure(true);    // Doit être activé en production (HTTPS)
+               cookie.setPath("/");       // Accessible sur toute l'application
+               cookie.setMaxAge(24 * 60 * 60);  // Expire après 24h
+               response.addCookie(cookie); // Ajouter le cookie à la réponse.
+
+               return ResponseEntity.ok("Token is valid");
+           } else {
+               return ResponseEntity.status(400).body("Invalid ID token");
+           }
+       } catch (GeneralSecurityException | IOException e) {
+           return ResponseEntity.status(500).body("Error during token verification: " + e.getMessage());
+       }
+   }
+
 }

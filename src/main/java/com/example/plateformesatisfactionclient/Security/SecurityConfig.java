@@ -49,6 +49,8 @@ public class SecurityConfig {
                         .requestMatchers("/api/auth/signup", "/api/auth/signin", "/api/auth/roles",
                                 "/api/auth/forgot-password", "/api/auth/reset-password", "/api/auth/google")
                         .permitAll()  // Autoriser l'accès public
+                        .requestMatchers("/admin/enquetes/create").authenticated() // Rendre la création d'enquête protégée
+
                         .anyRequest().authenticated()  // Toute autre requête nécessite une authentification
                 )
                 .exceptionHandling(e -> e.authenticationEntryPoint(authEntryPointJwt))  // Gestion des erreurs d'authentification

@@ -4,6 +4,7 @@ import jakarta.persistence.*;
 import lombok.*;
 
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 
 @NoArgsConstructor
@@ -22,6 +23,13 @@ public class User {
     private String username;
     private String email;
     private String password;
+
+    @OneToMany(mappedBy = "admin", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<Enquete> enquetesCreees;
+
+    // Relation avec les participations aux enquêtes (pour les clients)
+    @OneToMany(mappedBy = "utilisateur", cascade = CascadeType.ALL, orphanRemoval = true)  // Change "client" par "utilisateur"
+    private List<Participation> participations;
 
     @ManyToMany(fetch = FetchType.EAGER)
     @JoinTable(

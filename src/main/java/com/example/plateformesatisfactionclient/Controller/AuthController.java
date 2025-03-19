@@ -1,11 +1,16 @@
 package com.example.plateformesatisfactionclient.Controller;
 
+import com.example.plateformesatisfactionclient.Entity.User;
 import com.example.plateformesatisfactionclient.Repository.RoleRepository;
+import com.example.plateformesatisfactionclient.Repository.UserRepository;
 import com.example.plateformesatisfactionclient.Security.jwt.JwtUtil;
+import com.example.plateformesatisfactionclient.Security.services.UserDetailsImpl;
 import com.example.plateformesatisfactionclient.Service.Authservice;
 import com.example.plateformesatisfactionclient.Service.Emailservice;
 import com.example.plateformesatisfactionclient.payload.request.LoginRequest;
 import com.example.plateformesatisfactionclient.payload.request.SignupRequest;
+import com.example.plateformesatisfactionclient.payload.response.JwtResponse;
+import com.example.plateformesatisfactionclient.payload.response.MessageResponse;
 import com.google.api.client.googleapis.auth.oauth2.GoogleIdToken;
 import com.google.api.client.googleapis.auth.oauth2.GoogleIdTokenVerifier;
 import com.google.api.client.googleapis.javanet.GoogleNetHttpTransport;
@@ -17,6 +22,7 @@ import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.web.bind.annotation.*;
 
 import jakarta.validation.Valid;
@@ -40,22 +46,45 @@ public class AuthController {
     private Emailservice emailService;
     @Autowired
     private JwtUtil jwtUtil;
-
+    @Autowired
+    private UserRepository userRepository;
 
     public AuthController(Authservice authService) {
         this.authService = authService;
     }
 
-   /* @PostMapping("/signin")
-    public ResponseEntity<JwtResponse> authenticateUser(@Valid @RequestBody LoginRequest loginRequest) {
-        JwtResponse jwtResponse = authService.authenticateUser(loginRequest);
-        return ResponseEntity.ok(jwtResponse);
-    }*/
 
-    @PostMapping("/signin")
+
+
+
+
+    /*@PostMapping("/signin")
     public ResponseEntity<String> authenticateUser(@Valid @RequestBody LoginRequest loginRequest, HttpServletResponse response) {
         authService.authenticateUser(loginRequest, response);
         return ResponseEntity.ok("Connexion réussie !");
+    }*/
+
+    @PostMapping("/signin")
+    public ResponseEntity<Map<String, Object>> authenticateUser(@Valid @RequestBody LoginRequest loginRequest, HttpServletResponse response) {
+        try {
+            String jwt = authService.authenticateUser(loginRequest, response);
+            User user = userRepository.findByUsername(loginRequest.getUsername())
+                    .orElseThrow(() -> new RuntimeException("Utilisateur non trouvé"));
+
+            Map<String, Object> responseMap = new HashMap<>();
+            responseMap.put("jwt", jwt);
+            responseMap.put("user", Map.of(
+                    "id", user.getId(),
+                    "username", user.getUsername(),
+                    "email", user.getEmail(),
+                    "roles", user.getRoles().stream().map(role -> role.getName().name()).collect(Collectors.toList())
+            ));
+
+            return ResponseEntity.ok(responseMap);
+        } catch (Exception e) {
+            e.printStackTrace();  // Affiche l'erreur dans les logs du serveur
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Map.of("message", "Erreur de connexion", "details", e.getMessage()));
+        }
     }
 
 

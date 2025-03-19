@@ -5,13 +5,22 @@ import com.example.plateformesatisfactionclient.Entity.Question;
 import com.example.plateformesatisfactionclient.Entity.TypeQuestion;
 import com.example.plateformesatisfactionclient.Entity.User;
 import com.example.plateformesatisfactionclient.Repository.UserRepository;
+import com.example.plateformesatisfactionclient.Security.jwt.JwtUtil;
 import com.example.plateformesatisfactionclient.Service.EnqueteService;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import jakarta.servlet.http.Cookie;
+import jakarta.servlet.http.HttpServletRequest;
+import net.minidev.json.JSONObject;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDateTime;
+import java.util.Base64;
 import java.util.List;
 
 @RestController
@@ -21,6 +30,8 @@ public class EnqueteController {
     @Autowired
     private EnqueteService enqueteService;
     @Autowired
+    private JwtUtil jwtUtil;
+    @Autowired
     private UserRepository userRepository;
     // Créer une enquête avec ses questions
     public EnqueteController(EnqueteService enqueteService, UserRepository userRepository) {
@@ -29,7 +40,7 @@ public class EnqueteController {
     }
 
     // Méthode de création d'enquête
-    @PostMapping("/create")
+    /*@PostMapping("/create")
     public ResponseEntity<Enquete> creerEnqueteAvecQuestions(@RequestBody Enquete enquete) {
         // Vérifier si l'admin est valide
         User admin = userRepository.findById(enquete.getAdmin().getId())
@@ -48,7 +59,46 @@ public class EnqueteController {
         );
 
         return ResponseEntity.status(HttpStatus.CREATED).body(savedEnquete);
+    }*/
+
+    @PostMapping("/create")
+    public ResponseEntity<Enquete> creerEnqueteAvecQuestions(@RequestBody Enquete enquete) {
+        // Récupérer l'utilisateur authentifié à partir du JWT
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+
+        if (authentication == null) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(null);
+        }
+
+        // Vérifier que l'utilisateur a le rôle 'ROLE_ADMIN'
+        boolean isAdmin = authentication.getAuthorities().stream()
+                .anyMatch(grantedAuthority -> grantedAuthority.getAuthority().equals("ROLE_ADMIN"));
+
+        if (!isAdmin) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(null);
+        }
+
+        // Utilisateur est un admin, nous récupérons l'utilisateur depuis le token JWT
+        String username = authentication.getName();  // Récupérer le nom d'utilisateur (username) du token JWT
+        User admin = userRepository.findByUsername(username)
+                .orElseThrow(() -> new IllegalArgumentException("Admin non trouvé"));
+
+        // Convertir la date d'expiration depuis String vers LocalDateTime
+        LocalDateTime expirationDate = enquete.getDateExpiration();
+
+        // Créer l'enquête avec les questions
+        Enquete savedEnquete = enqueteService.creerEnqueteAvecQuestions(
+                enquete.getTitre(),
+                enquete.getDescription(),
+                expirationDate,
+                admin,  // Utiliser l'admin récupéré automatiquement
+                enquete.getQuestions()
+        );
+
+        return ResponseEntity.status(HttpStatus.CREATED).body(savedEnquete);
     }
+
+
     // Publier une enquête
     @PostMapping("/publish/{id}")
     public ResponseEntity<Enquete> publierEnquete(@PathVariable Long id) {

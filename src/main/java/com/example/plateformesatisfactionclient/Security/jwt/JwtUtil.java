@@ -1,9 +1,13 @@
 package com.example.plateformesatisfactionclient.Security.jwt;
 
-import io.jsonwebtoken.JwtException;
-import io.jsonwebtoken.Jwts;
+import com.example.plateformesatisfactionclient.Entity.User;
+import com.example.plateformesatisfactionclient.Repository.UserRepository;
+import com.example.plateformesatisfactionclient.Security.services.UserDetailsImpl;
+import io.jsonwebtoken.*;
 import io.jsonwebtoken.io.Decoders;
 import io.jsonwebtoken.security.Keys;
+import io.jsonwebtoken.security.SignatureException;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
@@ -12,7 +16,8 @@ import java.util.Date;
 
 @Component
 public class JwtUtil {
-
+    @Autowired
+    private UserRepository userRepository;
     private final SecretKey key;
 
     @Value("${jwt.expirationMs}")
@@ -52,4 +57,8 @@ public class JwtUtil {
             return false;
         }
     }
+
+
+
+
 }

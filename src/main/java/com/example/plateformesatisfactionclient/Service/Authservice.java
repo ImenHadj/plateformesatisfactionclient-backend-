@@ -6,19 +6,27 @@ import com.example.plateformesatisfactionclient.Entity.User;
 import com.example.plateformesatisfactionclient.Repository.RoleRepository;
 import com.example.plateformesatisfactionclient.Repository.UserRepository;
 import com.example.plateformesatisfactionclient.Security.jwt.JwtUtil;
+import com.example.plateformesatisfactionclient.Security.services.UserDetailsImpl;
+import com.example.plateformesatisfactionclient.Security.services.UserDetailsServiceImpl;
 import com.example.plateformesatisfactionclient.payload.request.LoginRequest;
 import com.example.plateformesatisfactionclient.payload.request.SignupRequest;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import org.apache.http.auth.AuthenticationException;
+import org.apache.http.auth.InvalidCredentialsException;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
+import java.net.URLEncoder;
 import java.util.HashSet;
 import java.util.Set;
 
@@ -27,7 +35,8 @@ public class Authservice {
 
     @Autowired
     private AuthenticationManager authenticationManager;
-
+    @Autowired
+    private UserDetailsServiceImpl userDetailsService;
     @Autowired
     private UserRepository userRepository;
 
@@ -63,7 +72,7 @@ public class Authservice {
 
         return new JwtResponse(jwt, user.getId(), user.getUsername(), user.getEmail(), roleNames);
     }*/
-    public void authenticateUser(LoginRequest loginRequest, HttpServletResponse response) {
+    /*public void authenticateUser(LoginRequest loginRequest, HttpServletResponse response) {
         // Authentification de l'utilisateur
         Authentication authentication = authenticationManager.authenticate(
                 new UsernamePasswordAuthenticationToken(
@@ -87,7 +96,60 @@ public class Authservice {
 
         // Ajout du cookie à la réponse
         response.addCookie(cookie);
+    }*/
+
+    public String authenticateUser(LoginRequest loginRequest, HttpServletResponse response) {
+        try {
+            // Affichez les valeurs pour vérifier qu'elles sont correctes
+            System.out.println("Tentative de connexion avec username: " + loginRequest.getUsername());
+
+            // Authentification de l'utilisateur
+            Authentication authentication = authenticationManager.authenticate(
+                    new UsernamePasswordAuthenticationToken(
+                            loginRequest.getUsername(),
+                            loginRequest.getPassword()
+                    )
+            );
+
+            // Contexte de sécurité
+            SecurityContextHolder.getContext().setAuthentication(authentication);
+
+            // Génération du JWT
+            String jwt = jwtUtil.generateToken(loginRequest.getUsername());
+
+            // Récupérer l'utilisateur depuis la base de données
+            User user = userRepository.findByUsername(loginRequest.getUsername())
+                    .orElseThrow(() -> new RuntimeException("Utilisateur non trouvé"));
+
+            // Ajouter les informations de l'utilisateur dans un autre cookie
+            String userInfo = "id=1&username=testuser&email=test@example.com";  // Valeur simplifiée pour les tests
+            String encodedUserInfo = URLEncoder.encode(userInfo, "UTF-8");  // Encoder avant d'ajouter au cookie
+
+            Cookie userCookie = new Cookie("user_info", encodedUserInfo);
+            userCookie.setHttpOnly(true);
+            userCookie.setSecure(true);  // Utilisez true seulement en HTTPS
+            userCookie.setPath("/");
+            userCookie.setMaxAge(24 * 60 * 60);  // 1 jour
+            response.addCookie(userCookie);
+
+
+            // Création du cookie JWT
+            Cookie jwtCookie = new Cookie("jwt", jwt);
+            jwtCookie.setHttpOnly(true);  // Empêche l'accès au cookie via JavaScript
+            jwtCookie.setSecure(true);    // Utilisez true seulement en HTTPS
+            jwtCookie.setPath("/");
+            jwtCookie.setMaxAge(24 * 60 * 60);  // Expire après 1 jour
+            response.addCookie(jwtCookie);
+
+            return jwt;
+        } catch (Exception e) {
+            e.printStackTrace();  // Ajouter un log d'erreur pour déboguer
+            throw new RuntimeException("Erreur d'authentification");
+        }
     }
+
+
+
 
     private boolean isSecureEnvironment(HttpServletRequest request) {
         return "https".equalsIgnoreCase(request.getScheme());

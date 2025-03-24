@@ -17,32 +17,87 @@ public class EnqueteService {
 
     @Autowired
     private QuestionRepository questionRepository;
+    @Autowired
+    private Authservice userService;  // Service pour récupérer les utilisateurs
 
+    @Autowired
+    private Emailservice emailService;
     public EnqueteService(EnqueteRepository enqueteRepository) {
         this.enqueteRepository = enqueteRepository;
     }
 
-    // Création d'enquête avec questions
-    public Enquete creerEnqueteAvecQuestions(String titre, String description, LocalDateTime dateExpiration, User admin, List<Question> questions) {
+
+   /* public Enquete creerEnqueteAvecQuestions(String titre, String description, LocalDateTime datePublication, LocalDateTime dateExpiration, User admin, List<Question> questions) {
         // Création d'une nouvelle enquête
         Enquete enquete = new Enquete();
         enquete.setTitre(titre);
         enquete.setDescription(description);
         enquete.setDateCreation(LocalDateTime.now());
-        enquete.setDateExpiration(dateExpiration);
-        enquete.setStatut(StatutEnquete.BROUILLON);  // Statut initial de l'enquête
+        enquete.setDatePublication(datePublication);  // Date de publication spécifiée par l'utilisateur
+        enquete.setDateExpiration(dateExpiration);    // Date d'expiration
+        enquete.setStatut(StatutEnquete.BROUILLON);    // Statut initial de l'enquête
         enquete.setAdmin(admin);
+
+        // Si la date de publication est atteinte, nous publions l'enquête
+        if (LocalDateTime.now().isAfter(datePublication) || LocalDateTime.now().isEqual(datePublication)) {
+            enquete.setStatut(StatutEnquete.PUBLIEE);  // Change le statut à "PUBLIEE" quand la date de publication est atteinte
+        }
 
         // Associer chaque question à l'enquête
         for (Question question : questions) {
-            question.setEnquete(enquete);  // Associe chaque question à l'enquête
+            question.setEnquete(enquete);
         }
 
         enquete.setQuestions(questions);  // Ajouter les questions à l'enquête
 
         // Enregistrer l'enquête et ses questions dans la base de données
-        return enqueteRepository.save(enquete);  // Cela persistera l'enquête et ses questions grâce à CascadeType.ALL
+        return enqueteRepository.save(enquete);
+    }*/
+
+
+    public Enquete creerEnqueteAvecQuestions(String titre, String description, LocalDateTime datePublication, LocalDateTime dateExpiration, User admin, List<Question> questions) {
+        // Création d'une nouvelle enquête
+        Enquete enquete = new Enquete();
+        enquete.setTitre(titre);
+        enquete.setDescription(description);
+        enquete.setDateCreation(LocalDateTime.now());
+        enquete.setDatePublication(datePublication);  // Date de publication spécifiée par l'utilisateur
+        enquete.setDateExpiration(dateExpiration);    // Date d'expiration
+        enquete.setStatut(StatutEnquete.BROUILLON);    // Statut initial de l'enquête
+        enquete.setAdmin(admin);
+
+        // Si la date de publication est atteinte, nous publions l'enquête
+        if (LocalDateTime.now().isAfter(datePublication) || LocalDateTime.now().isEqual(datePublication)) {
+            enquete.setStatut(StatutEnquete.PUBLIEE);  // Change le statut à "PUBLIEE" quand la date de publication est atteinte
+        }
+
+        // Associer chaque question à l'enquête
+        for (Question question : questions) {
+            question.setEnquete(enquete);
+        }
+
+        enquete.setQuestions(questions);  // Ajouter les questions à l'enquête
+
+        // Enregistrer l'enquête et ses questions dans la base de données
+        Enquete savedEnquete = enqueteRepository.save(enquete);
+
+        // Vérifier si l'enquête a été publiée et envoyer le lien aux utilisateurs "CLIENT"
+        if (enquete.getStatut() == StatutEnquete.PUBLIEE) {
+            // Récupérer tous les utilisateurs ayant le rôle "CLIENT"
+            List<User> clients = userService.getUsersByRole(ERole.ROLE_Client);
+
+            // Envoyer le lien de l'enquête à chaque client
+            String enqueteLink = "http://localhost:8080/enquete/respond/" + savedEnquete.getId();
+            for (User client : clients) {
+                emailService.sendEnqueteLink(client.getEmail(), enqueteLink); // Envoi du lien d'enquête
+            }
+        }
+
+        return savedEnquete;
     }
+
+
+
     // Publier une enquête
     public Enquete publierEnquete(Long enqueteId) {
         Enquete enquete = enqueteRepository.findById(enqueteId).orElseThrow();

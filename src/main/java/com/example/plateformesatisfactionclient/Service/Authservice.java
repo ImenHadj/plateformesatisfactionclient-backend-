@@ -28,6 +28,7 @@ import org.springframework.stereotype.Service;
 
 import java.net.URLEncoder;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 
 @Service
@@ -206,5 +207,11 @@ public class Authservice {
 
         return "Mot de passe réinitialisé avec succès.";
     }
+
+    public List<User> getUsersByRole(ERole role) {
+        return userRepository.findByRoles_Name(role); // Utilise ERole au lieu de String
+    }
+
+
 
 }

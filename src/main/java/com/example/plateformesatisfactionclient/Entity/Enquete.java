@@ -25,6 +25,8 @@ public class Enquete {
     private LocalDateTime dateCreation;
     private LocalDateTime dateExpiration;
 
+    private LocalDateTime datePublication; // Date et heure de publication
+
     @Enumerated(EnumType.STRING)
     private StatutEnquete statut; // BROUILLON, PUBLIÉE, FERMÉE
 
@@ -47,6 +49,14 @@ public class Enquete {
 
     public void setDateCreation(LocalDateTime dateCreation) {
         this.dateCreation = dateCreation;
+    }
+
+    public void setDatePublication(LocalDateTime datePublication) {
+        this.datePublication = datePublication;
+    }
+
+    public LocalDateTime getDatePublication() {
+        return datePublication;
     }
 
     public void setDateExpiration(LocalDateTime dateExpiration) {
@@ -82,4 +92,16 @@ public class Enquete {
 
     public List<Question> getQuestions() {
         return questions;
-    }}
+    }
+
+    public Long getId() {
+        return id;
+    }
+
+    public void setId(Long id) {
+        this.id = id;
+    } public StatutEnquete getStatut() {
+        return statut;
+    }
+
+    }

@@ -1,6 +1,7 @@
 package com.example.plateformesatisfactionclient.Service;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.stereotype.Service;
@@ -12,6 +13,10 @@ public class Emailservice {
 
     @Autowired
     private JavaMailSender mailSender;
+
+
+    @Autowired
+    private JavaMailSender emailSender;
 
     public void sendResetPasswordEmail(String toEmail, String resetLink) {
         try {
@@ -30,5 +35,13 @@ public class Emailservice {
         } catch (MessagingException e) {
             throw new RuntimeException("Erreur lors de l'envoi de l'email : " + e.getMessage());
         }
+    }
+
+    public void sendEnqueteLink(String toEmail, String enqueteLink) {
+        SimpleMailMessage message = new SimpleMailMessage();
+        message.setTo(toEmail);
+        message.setSubject("Participez à notre enquête");
+        message.setText("Veuillez participer à notre enquête en cliquant sur le lien suivant : " + enqueteLink);
+        emailSender.send(message);
     }
 }

@@ -1,11 +1,11 @@
 package com.example.plateformesatisfactionclient.Controller;
 
-import com.example.plateformesatisfactionclient.Entity.Enquete;
-import com.example.plateformesatisfactionclient.Entity.Question;
-import com.example.plateformesatisfactionclient.Entity.TypeQuestion;
-import com.example.plateformesatisfactionclient.Entity.User;
+import com.example.plateformesatisfactionclient.Entity.*;
+import com.example.plateformesatisfactionclient.Repository.EnqueteRepository;
 import com.example.plateformesatisfactionclient.Repository.UserRepository;
 import com.example.plateformesatisfactionclient.Security.jwt.JwtUtil;
+import com.example.plateformesatisfactionclient.Service.Authservice;
+import com.example.plateformesatisfactionclient.Service.Emailservice;
 import com.example.plateformesatisfactionclient.Service.EnqueteService;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -33,33 +33,60 @@ public class EnqueteController {
     private JwtUtil jwtUtil;
     @Autowired
     private UserRepository userRepository;
+
+    @Autowired
+    private EnqueteRepository enqueteRepository;
+    @Autowired
+    private Emailservice emailService;
+
+    @Autowired
+    private Authservice userService;
     // Créer une enquête avec ses questions
     public EnqueteController(EnqueteService enqueteService, UserRepository userRepository) {
         this.enqueteService = enqueteService;
         this.userRepository = userRepository;
     }
 
-    // Méthode de création d'enquête
+
     /*@PostMapping("/create")
     public ResponseEntity<Enquete> creerEnqueteAvecQuestions(@RequestBody Enquete enquete) {
-        // Vérifier si l'admin est valide
-        User admin = userRepository.findById(enquete.getAdmin().getId())
-                .orElseThrow(() -> new IllegalArgumentException("Admin not found"));
+        // Récupérer l'utilisateur authentifié à partir du JWT
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
 
-        // Convertir la date de expiration depuis String vers LocalDateTime
+        if (authentication == null) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(null);
+        }
+
+        // Vérifier que l'utilisateur a le rôle 'ROLE_ADMIN'
+        boolean isAdmin = authentication.getAuthorities().stream()
+                .anyMatch(grantedAuthority -> grantedAuthority.getAuthority().equals("ROLE_ADMIN"));
+
+        if (!isAdmin) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(null);
+        }
+
+        // Utilisateur est un admin, nous récupérons l'utilisateur depuis le token JWT
+        String username = authentication.getName();
+        User admin = userRepository.findByUsername(username)
+                .orElseThrow(() -> new IllegalArgumentException("Admin non trouvé"));
+
+        // Convertir la date de publication et d'expiration
+        LocalDateTime publicationDate = enquete.getDatePublication();
         LocalDateTime expirationDate = enquete.getDateExpiration();
 
-        // Appeler le service pour créer l'enquête avec les questions
+        // Créer l'enquête avec les questions
         Enquete savedEnquete = enqueteService.creerEnqueteAvecQuestions(
                 enquete.getTitre(),
                 enquete.getDescription(),
+                publicationDate,
                 expirationDate,
-                admin,
+                admin,  // Utiliser l'admin récupéré automatiquement
                 enquete.getQuestions()
         );
 
         return ResponseEntity.status(HttpStatus.CREATED).body(savedEnquete);
     }*/
+
 
     @PostMapping("/create")
     public ResponseEntity<Enquete> creerEnqueteAvecQuestions(@RequestBody Enquete enquete) {
@@ -79,24 +106,42 @@ public class EnqueteController {
         }
 
         // Utilisateur est un admin, nous récupérons l'utilisateur depuis le token JWT
-        String username = authentication.getName();  // Récupérer le nom d'utilisateur (username) du token JWT
+        String username = authentication.getName();
         User admin = userRepository.findByUsername(username)
                 .orElseThrow(() -> new IllegalArgumentException("Admin non trouvé"));
 
-        // Convertir la date d'expiration depuis String vers LocalDateTime
+        // Convertir la date de publication et d'expiration
+        LocalDateTime publicationDate = enquete.getDatePublication();
         LocalDateTime expirationDate = enquete.getDateExpiration();
 
         // Créer l'enquête avec les questions
         Enquete savedEnquete = enqueteService.creerEnqueteAvecQuestions(
                 enquete.getTitre(),
                 enquete.getDescription(),
+                publicationDate,
                 expirationDate,
                 admin,  // Utiliser l'admin récupéré automatiquement
                 enquete.getQuestions()
         );
 
+        // Vérification si la date actuelle est supérieure ou égale à la date de publication
+        if (LocalDateTime.now().isAfter(publicationDate) || LocalDateTime.now().isEqual(publicationDate)) {
+            savedEnquete.setStatut(StatutEnquete.PUBLIEE); // Mettre l'enquête en statut publié
+            enqueteRepository.save(savedEnquete); // Sauvegarder les modifications
+
+            // Une fois l'enquête publiée, envoyer le lien aux clients
+            List<User> clients = userService.getUsersByRole(ERole.ROLE_Client);
+
+            String enqueteLink = "http://localhost:9090/enquete/respond/" + savedEnquete.getId(); // Lien vers l'enquête
+            for (User client : clients) {
+                emailService.sendEnqueteLink(client.getEmail(), enqueteLink); // Envoi du lien de l'enquête
+            }
+        }
+
         return ResponseEntity.status(HttpStatus.CREATED).body(savedEnquete);
     }
+
+
 
 
     // Publier une enquête

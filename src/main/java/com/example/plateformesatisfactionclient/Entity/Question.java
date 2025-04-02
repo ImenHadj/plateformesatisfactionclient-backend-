@@ -45,8 +45,23 @@ public class Question {
         this.type = type;
     }
 
+    public Enquete getEnquete() {
+        return enquete;
+    }
+
     public void setEnquete(Enquete enquete) {
         this.enquete = enquete;
+    }
+
+    public String getTexte() {
+        return texte;
+    }
+    public TypeQuestion getType() {
+        return type;
+    }
+
+    public Long getId() {
+        return id;
     }
 }
 

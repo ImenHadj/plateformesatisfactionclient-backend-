@@ -1,11 +1,8 @@
 package com.example.plateformesatisfactionclient.Repository;
 
 import com.example.plateformesatisfactionclient.Entity.Question;
+import com.example.plateformesatisfactionclient.Entity.Reponse;
 import org.springframework.data.jpa.repository.JpaRepository;
 
-import java.util.List;
-
-public interface QuestionRepository extends JpaRepository<Question, Long> {
-        List<Question> findByEnqueteId(Long enqueteId);
-    }
-
+public interface ReponseRepository extends JpaRepository<Reponse, Long> {
+}

@@ -24,12 +24,33 @@ public class Reponse {
     private Question question; // La question concernée
 
     @ManyToOne
-    @JoinColumn(name = "participation_id", nullable = false)
-    private Participation participation; // Lien avec l'utilisateur et l'enquête
+    @JoinColumn(name = "user_id", nullable = false)
+    private User user;  // L'utilisateur qui a répondu
 
-    private String reponseText; // Si la question est de type OUVERT
+    private String reponseText; // Réponse si la question est de type OUVERT
 
     @ElementCollection
-    private List<String> choixSelectionnes = new ArrayList<>(); // Si la question est CHOIX_SIMPLE ou CHOIX_MULTIPLE
-}
+    private List<String> choixSelectionnes = new ArrayList<>(); // Réponses si la question est CHOIX_SIMPLE ou CHOIX_MULTIPLE
+    @ManyToOne
+    @JoinColumn(name = "enquete_id", nullable = false)
+    private Enquete enquete;
 
+
+    public void setEnquete(Enquete enquete) {
+        this.enquete = enquete;
+    }
+
+    // Ajoutez le setter pour User
+    public void setUser(User user) {
+        this.user = user;
+    }
+
+    public Question getQuestion() {
+        return question;
+    }
+
+    public void setQuestion(Question question) {
+        this.question = question;
+    }
+
+}

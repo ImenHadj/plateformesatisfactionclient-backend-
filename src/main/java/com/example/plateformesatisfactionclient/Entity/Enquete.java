@@ -37,8 +37,7 @@ public class Enquete {
     @OneToMany(mappedBy = "enquete", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<Question> questions = new ArrayList<>();
 
-    @OneToMany(mappedBy = "enquete", cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<Participation> participations = new ArrayList<>();
+
     public void setTitre(String titre) {
         this.titre = titre;
     }

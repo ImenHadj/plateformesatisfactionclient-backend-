@@ -47,7 +47,7 @@ public class SecurityConfig {
                 .csrf().disable() // Désactiver CSRF pour les appels API
                 .authorizeHttpRequests(authz -> authz
                         .requestMatchers("/api/auth/signup", "/api/auth/signin", "/api/auth/roles",
-                                "/api/auth/forgot-password", "/api/auth/reset-password", "/api/auth/google")
+                                "/api/auth/forgot-password", "/api/auth/reset-password", "/api/auth/google","/enquete/respond/{id}","/enquete/respond/{enqueteId}")
                         .permitAll()  // Autoriser l'accès public
                         .requestMatchers("/admin/enquetes/create").authenticated() // Rendre la création d'enquête protégée
 

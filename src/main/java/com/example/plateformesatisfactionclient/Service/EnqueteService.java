@@ -3,11 +3,22 @@ package com.example.plateformesatisfactionclient.Service;
 import com.example.plateformesatisfactionclient.Entity.*;
 import com.example.plateformesatisfactionclient.Repository.EnqueteRepository;
 import com.example.plateformesatisfactionclient.Repository.QuestionRepository;
+import com.example.plateformesatisfactionclient.Repository.ReponseRepository;
+import com.example.plateformesatisfactionclient.Repository.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestParam;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.NoSuchElementException;
+import java.util.Optional;
 
 @Service
 public class EnqueteService {
@@ -22,6 +33,10 @@ public class EnqueteService {
 
     @Autowired
     private Emailservice emailService;
+    @Autowired
+    private ReponseRepository reponseRepository;
+    @Autowired
+    private UserRepository userRepository;
     public EnqueteService(EnqueteRepository enqueteRepository) {
         this.enqueteRepository = enqueteRepository;
     }
@@ -98,13 +113,13 @@ public class EnqueteService {
 
 
 
-    // Publier une enquête
-    public Enquete publierEnquete(Long enqueteId) {
-        Enquete enquete = enqueteRepository.findById(enqueteId).orElseThrow();
-        enquete.setStatut(StatutEnquete.PUBLIEE);
-        return enqueteRepository.save(enquete);
-    }
-
+    public Enquete getEnqueteWithQuestions(Long id) {
+        Optional<Enquete> enqueteOpt = enqueteRepository.findById(id);
+        if (enqueteOpt.isPresent()) {
+            return enqueteOpt.get(); // Retourne l'enquête avec ses questions
+        } else {
+            throw new NoSuchElementException("Enquête non trouvée avec l'id : " + id);
+        }}
     // Modifier une enquête
     public Enquete modifierEnquete(Long enqueteId, String titre, String description, LocalDateTime dateExpiration) {
         Enquete enquete = enqueteRepository.findById(enqueteId).orElseThrow();
@@ -141,4 +156,52 @@ public class EnqueteService {
     public List<Question> getQuestionsForEnquete(Long enqueteId) {
         return questionRepository.findByEnqueteId(enqueteId);
     }
+
+   /* public void enregistrerReponses(Long enqueteId, Long userId, List<Reponse> reponses) {
+        // Vérification si l'enquête existe
+        Enquete enquete = enqueteRepository.findById(enqueteId)
+                .orElseThrow(() -> new RuntimeException("Enquête non trouvée"));  // Utiliser RuntimeException
+
+        // Vérifier si l'utilisateur existe
+        User utilisateur = userRepository.findById(userId)
+                .orElseThrow(() -> new RuntimeException("Utilisateur non trouvé"));  // Utiliser RuntimeException
+
+        // Associer les réponses à l'enquête et à l'utilisateur
+        for (Reponse reponse : reponses) {
+            if (reponse.getQuestion() == null || reponse.getQuestion().getId() == null) {
+                throw new RuntimeException("Question ID est manquante dans les réponses");
+            }
+            reponse.setEnquete(enquete);  // Associer l'enquête
+            reponse.setUser(utilisateur);  // Associer la réponse à l'utilisateur
+        }
+
+        // Sauvegarder les réponses dans la base de données
+        reponseRepository.saveAll(reponses);
+    }*/
+   @Transactional
+   public void enregistrerReponses(Long enqueteId, Long userId, List<Reponse> reponses) {
+       // 1. Chargement des entités
+       Enquete enquete = enqueteRepository.findById(enqueteId)
+               .orElseThrow(() -> new RuntimeException("Enquête non trouvée"));
+
+       User utilisateur = userRepository.findById(userId)
+               .orElseThrow(() -> new RuntimeException("Utilisateur non trouvé"));
+
+       // 2. Association des réponses
+       for (Reponse reponse : reponses) {
+           Question question = questionRepository.findById(reponse.getQuestion().getId())
+                   .orElseThrow(() -> new RuntimeException("Question non trouvée"));
+
+           if (!question.getEnquete().getId().equals(enqueteId)) {
+               throw new RuntimeException("La question ID " + question.getId() + " n'appartient pas à cette enquête");
+           }
+
+           reponse.setEnquete(enquete);
+           reponse.setUser(utilisateur);
+           reponse.setQuestion(question);
+       }
+
+       // 3. Sauvegarde
+       reponseRepository.saveAll(reponses);
+   }
 }

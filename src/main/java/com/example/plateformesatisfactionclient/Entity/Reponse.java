@@ -19,22 +19,32 @@ public class Reponse {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @ManyToOne
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private TypeReponse typeReponse; // Enum avec TEXTE, CHOIX, NUMERIQUE, etc.
+
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "question_id", nullable = false)
-    private Question question; // La question concernée
+    private Question question;
 
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id", nullable = false)
-    private User user;  // L'utilisateur qui a répondu
+    private User user;
 
-    private String reponseText; // Réponse si la question est de type OUVERT
-
-    @ElementCollection
-    private List<String> choixSelectionnes = new ArrayList<>(); // Réponses si la question est CHOIX_SIMPLE ou CHOIX_MULTIPLE
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "enquete_id", nullable = false)
     private Enquete enquete;
 
+    @OneToOne(mappedBy = "reponse", cascade = CascadeType.ALL, orphanRemoval = true)
+    private ReponseTexte reponseTexte;
+
+    @OneToMany(mappedBy = "reponse", cascade = CascadeType.ALL)
+    private List<ReponseChoix> reponsesChoix = new ArrayList<>();
+
+    // Getter pour la liste
+    public List<ReponseChoix> getReponsesChoix() {
+        return reponsesChoix;
+    }
 
     public void setEnquete(Enquete enquete) {
         this.enquete = enquete;
@@ -53,4 +63,23 @@ public class Reponse {
         this.question = question;
     }
 
+    public TypeReponse getTypeReponse() {
+        return typeReponse;
+    }
+
+    public void setTypeReponse(TypeReponse typeReponse) {
+        this.typeReponse = typeReponse;
+    }
+
+    public void setReponsesChoix(List<ReponseChoix> reponsesChoix) {
+        this.reponsesChoix = reponsesChoix;
+    }
+
+    public ReponseTexte getReponseTexte() {
+        return reponseTexte;
+    }
+
+    public void setReponseTexte(ReponseTexte reponseTexte) {
+        this.reponseTexte = reponseTexte;
+    }
 }

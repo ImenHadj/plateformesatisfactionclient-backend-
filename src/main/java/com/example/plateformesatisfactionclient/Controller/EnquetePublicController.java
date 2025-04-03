@@ -1,4 +1,5 @@
 package com.example.plateformesatisfactionclient.Controller;
+import com.example.plateformesatisfactionclient.DTO.ReponseDTO;
 import com.example.plateformesatisfactionclient.Entity.User;
 import com.example.plateformesatisfactionclient.Repository.UserRepository;
 import com.fasterxml.jackson.core.type.TypeReference;
@@ -15,6 +16,8 @@ import com.example.plateformesatisfactionclient.Repository.QuestionRepository;
 import com.example.plateformesatisfactionclient.Service.EnqueteService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.annotation.security.PermitAll;
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotNull;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -64,69 +67,24 @@ public class EnquetePublicController {
 
         return ResponseEntity.ok(enqueteResponseDTO);
     }
-   /* @PostMapping("/respond/{enqueteId}")
-    public ResponseEntity<String> repondreEnquete(@PathVariable Long enqueteId, @RequestParam Long userId, @RequestBody List<Reponse> reponses) {
-        try {
-            enqueteService.enregistrerReponses(enqueteId, userId, reponses);
-            return ResponseEntity.ok("Réponses soumises avec succès !");
-        } catch (RuntimeException e) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Erreur : " + e.getMessage());  // Retourner une erreur 404 si l'enquête ou l'utilisateur est introuvable
-        } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Une erreur est survenue : " + e.getMessage());
-        }
-    }*/
 
-    @PermitAll // Ajoutez cette annotation si l'endpoint doit être public
 
-    @PostMapping("/respond/{enqueteId}")
+
+    @PermitAll
+
+    @PostMapping("/respond/{enqueteId}") // Chemin complet: /enquete/respond/30
     public ResponseEntity<String> repondreEnquete(
             @PathVariable Long enqueteId,
             @RequestParam Long userId,
-            @RequestBody List<Reponse> reponses) {
+            @RequestBody List<ReponseDTO> reponsesDTO) {
 
         try {
-            // 1. Validation des entrées
-            if (reponses == null || reponses.isEmpty()) {
-                return ResponseEntity.badRequest().body("Aucune réponse à enregistrer");
-            }
-
-            // 2. Vérification des IDs de question
-            for (Reponse reponse : reponses) {
-                if (reponse.getQuestion() == null || reponse.getQuestion().getId() == null || reponse.getQuestion().getId() <= 0) {
-                    return ResponseEntity.badRequest().body("ID de question invalide détecté");
-                }
-            }
-
-            // 3. Vérification de l'enquête et de l'utilisateur
-            Enquete enquete = enqueteRepository.findById(enqueteId)
-                    .orElseThrow(() -> new RuntimeException("Enquête non trouvée"));
-
-            User utilisateur = userRepository.findById(userId)
-                    .orElseThrow(() -> new RuntimeException("Utilisateur non trouvé"));
-
-            // 4. Vérification des questions
-            for (Reponse reponse : reponses) {
-                Question question = questionRepository.findById(reponse.getQuestion().getId())
-                        .orElseThrow(() -> new RuntimeException("Question non trouvée"));
-
-                if (!question.getEnquete().getId().equals(enqueteId)) {
-                    return ResponseEntity.badRequest().body("La question ID " + question.getId() + " n'appartient pas à cette enquête");
-                }
-            }
-
-            // 5. Enregistrement
-            enqueteService.enregistrerReponses(enqueteId, userId, reponses);
-            return ResponseEntity.ok("Réponses soumises avec succès !");
-
-        } catch (RuntimeException e) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
+            enqueteService.enregistrerReponses(enqueteId, userId, reponsesDTO);
+            return ResponseEntity.ok("Réponses enregistrées");
         } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body("Erreur serveur: " + e.getMessage());
+            return ResponseEntity.badRequest().body(e.getMessage());
         }
     }
-
-
 
 }
 

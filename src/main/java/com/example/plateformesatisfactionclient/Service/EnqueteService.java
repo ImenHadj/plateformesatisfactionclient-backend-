@@ -1,5 +1,6 @@
 package com.example.plateformesatisfactionclient.Service;
 
+import com.example.plateformesatisfactionclient.DTO.ReponseDTO;
 import com.example.plateformesatisfactionclient.Entity.*;
 import com.example.plateformesatisfactionclient.Repository.EnqueteRepository;
 import com.example.plateformesatisfactionclient.Repository.QuestionRepository;
@@ -157,28 +158,8 @@ public class EnqueteService {
         return questionRepository.findByEnqueteId(enqueteId);
     }
 
-   /* public void enregistrerReponses(Long enqueteId, Long userId, List<Reponse> reponses) {
-        // Vérification si l'enquête existe
-        Enquete enquete = enqueteRepository.findById(enqueteId)
-                .orElseThrow(() -> new RuntimeException("Enquête non trouvée"));  // Utiliser RuntimeException
 
-        // Vérifier si l'utilisateur existe
-        User utilisateur = userRepository.findById(userId)
-                .orElseThrow(() -> new RuntimeException("Utilisateur non trouvé"));  // Utiliser RuntimeException
-
-        // Associer les réponses à l'enquête et à l'utilisateur
-        for (Reponse reponse : reponses) {
-            if (reponse.getQuestion() == null || reponse.getQuestion().getId() == null) {
-                throw new RuntimeException("Question ID est manquante dans les réponses");
-            }
-            reponse.setEnquete(enquete);  // Associer l'enquête
-            reponse.setUser(utilisateur);  // Associer la réponse à l'utilisateur
-        }
-
-        // Sauvegarder les réponses dans la base de données
-        reponseRepository.saveAll(reponses);
-    }*/
-   @Transactional
+  /* @Transactional
    public void enregistrerReponses(Long enqueteId, Long userId, List<Reponse> reponses) {
        // 1. Chargement des entités
        Enquete enquete = enqueteRepository.findById(enqueteId)
@@ -203,5 +184,53 @@ public class EnqueteService {
 
        // 3. Sauvegarde
        reponseRepository.saveAll(reponses);
-   }
-}
+   }*/
+
+    @Transactional
+    public void enregistrerReponses(Long enqueteId, Long userId, List<ReponseDTO> reponsesDTO) {
+        Enquete enquete = enqueteRepository.findById(enqueteId)
+                .orElseThrow(() -> new RuntimeException("Enquête non trouvée"));
+
+        User utilisateur = userRepository.findById(userId)
+                .orElseThrow(() -> new RuntimeException("Utilisateur non trouvée"));
+
+        List<Reponse> reponses = reponsesDTO.stream()
+                .map(dto -> convertirReponse(dto, enquete, utilisateur))
+                .toList();
+
+        reponseRepository.saveAll(reponses);
+    }
+
+    private Reponse convertirReponse(ReponseDTO dto, Enquete enquete, User utilisateur) {
+        Question question = questionRepository.findById(dto.getQuestionId())
+                .orElseThrow(() -> new RuntimeException("Question non trouvée"));
+
+        Reponse reponse = new Reponse();
+        reponse.setTypeReponse(dto.getTypeReponse());
+        reponse.setEnquete(enquete);
+        reponse.setUser(utilisateur);
+        reponse.setQuestion(question);
+
+        switch (dto.getTypeReponse()) {
+            case TEXTE:
+                ReponseTexte rt = new ReponseTexte();
+                rt.setValeur(dto.getTexteReponse());  // Utilise setValeur()
+                rt.setReponse(reponse);  // Utilise setReponse()
+                reponse.setReponseTexte(rt);  // Utilise setReponseTexte()
+                break;
+
+            case CHOIX_SIMPLE:
+            case CHOIX_MULTIPLE:
+                ReponseChoix rc = new ReponseChoix();
+                rc.setValeurChoix(dto.getChoixReponse());
+                rc.setReponse(reponse);
+                rc.setQuestion(question);
+                reponse.getReponsesChoix().add(rc);
+                break;
+
+            default:
+                throw new RuntimeException("Type de réponse non supporté");
+        }
+
+        return reponse;
+    }}

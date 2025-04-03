@@ -19,20 +19,28 @@ public class Question {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    private String texte; // Ex: "Que pensez-vous du service bancaire ?"
+    private String texte;
+    private Integer ordre; // Pour trier les questions
+  //  private boolean estObligatoire = false;
 
     @Enumerated(EnumType.STRING)
     private TypeQuestion type; // OUVERT, CHOIX_SIMPLE, CHOIX_MULTIPLE
 
+    // Utilisez @ElementCollection pour simplifier (si pas besoin de métadonnées supplémentaires)
     @ElementCollection
-    private List<String> options = new ArrayList<>(); // Pour stocker les choix possibles
+    @CollectionTable(name = "question_option", joinColumns = @JoinColumn(name = "question_id"))
+    @Column(name = "option_texte")
+    private List<String> options = new ArrayList<>();
 
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "enquete_id")
     private Enquete enquete;
 
-    @OneToMany(mappedBy = "question", cascade = CascadeType.ALL, orphanRemoval = true)
+    @OneToMany(mappedBy = "question", cascade = CascadeType.ALL)
     private List<Reponse> reponses = new ArrayList<>();
+
+    // Getters/Setters (garder ceux existants + nouveaux)
+
     public void setTexte(String texte) {
         this.texte = texte;
     }

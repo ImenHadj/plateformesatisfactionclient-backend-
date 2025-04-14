@@ -71,5 +71,10 @@ public class Question {
     public Long getId() {
         return id;
     }
+
+    public List<String> getOptions() {
+        return options;
+    }
+
 }
 

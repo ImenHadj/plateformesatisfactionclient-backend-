@@ -35,16 +35,20 @@ public class Reponse {
     @JoinColumn(name = "enquete_id", nullable = false)
     private Enquete enquete;
 
-    @OneToOne(mappedBy = "reponse", cascade = CascadeType.ALL, orphanRemoval = true)
-    private ReponseTexte reponseTexte;
 
-    @OneToMany(mappedBy = "reponse", cascade = CascadeType.ALL)
-    private List<ReponseChoix> reponsesChoix = new ArrayList<>();
+
+    @Column(name = "valeur_texte", columnDefinition = "TEXT")
+    private String valeurTexte;
+
+    @Column(name = "valeurs_choix", columnDefinition = "TEXT")
+    private String valeursChoix;
+
+
+    @Column(name = "valeur_numerique")
+    private Double valeurNumerique;
 
     // Getter pour la liste
-    public List<ReponseChoix> getReponsesChoix() {
-        return reponsesChoix;
-    }
+
 
     public void setEnquete(Enquete enquete) {
         this.enquete = enquete;
@@ -71,15 +75,45 @@ public class Reponse {
         this.typeReponse = typeReponse;
     }
 
-    public void setReponsesChoix(List<ReponseChoix> reponsesChoix) {
-        this.reponsesChoix = reponsesChoix;
+    public String getValeurTexte() {
+        return valeurTexte;
     }
 
-    public ReponseTexte getReponseTexte() {
-        return reponseTexte;
+    public void setValeurTexte(String valeurTexte) {
+        this.valeurTexte = valeurTexte;
     }
 
-    public void setReponseTexte(ReponseTexte reponseTexte) {
-        this.reponseTexte = reponseTexte;
+
+
+    public Double getValeurNumerique() {
+        return valeurNumerique;
     }
+
+    public void setValeurNumerique(Double valeurNumerique) {
+        this.valeurNumerique = valeurNumerique;
+    }
+    public String getValeursChoix() {
+        return valeursChoix;
+    }
+
+    public void setValeursChoix(String valeursChoix) {
+        this.valeursChoix = valeursChoix;
+    }
+    // Méthode utilitaire pour enregistrer une liste sous forme de chaîne
+    public void setValeursChoixFromList(List<String> choix) {
+        if (choix != null && !choix.isEmpty()) {
+            this.valeursChoix = String.join(",", choix);
+        } else {
+            this.valeursChoix = null;
+        }
+    }
+
+    // Méthode utilitaire pour récupérer la liste depuis la chaîne
+    public List<String> getValeursChoixAsList() {
+        if (valeursChoix != null && !valeursChoix.trim().isEmpty()) {
+            return List.of(valeursChoix.split("\\s*,\\s*")); // supprime les espaces autour des virgules
+        }
+        return new ArrayList<>();
+    }
+
 }

@@ -52,7 +52,7 @@ public class EnqueteController {
 
 
 
-    @PostMapping("/create")
+  /*  @PostMapping("/create")
     public ResponseEntity<Enquete> creerEnqueteAvecQuestions(@RequestBody Enquete enquete) {
         // Récupérer l'utilisateur authentifié à partir du JWT
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
@@ -103,7 +103,55 @@ public class EnqueteController {
         }
 
         return ResponseEntity.status(HttpStatus.CREATED).body(savedEnquete);
+    }*/
+
+
+
+    @PostMapping("/create")
+    public ResponseEntity<Enquete> creerEnqueteAvecQuestions(@RequestBody Enquete enquete) {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+
+        if (authentication == null) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(null);
+        }
+
+        boolean isAdmin = authentication.getAuthorities().stream()
+                .anyMatch(grantedAuthority -> grantedAuthority.getAuthority().equals("ROLE_ADMIN"));
+
+        if (!isAdmin) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(null);
+        }
+
+        String username = authentication.getName();
+        User admin = userRepository.findByUsername(username)
+                .orElseThrow(() -> new IllegalArgumentException("Admin non trouvé"));
+
+        LocalDateTime publicationDate = enquete.getDatePublication();
+        LocalDateTime expirationDate = enquete.getDateExpiration();
+
+        Enquete savedEnquete = enqueteService.creerEnqueteAvecQuestionsEtOptions(
+                enquete.getTitre(),
+                enquete.getDescription(),
+                publicationDate,
+                expirationDate,
+                admin,
+                enquete.getQuestions()
+        );
+
+        if (LocalDateTime.now().isAfter(publicationDate) || LocalDateTime.now().isEqual(publicationDate)) {
+            savedEnquete.setStatut(StatutEnquete.PUBLIEE);
+            enqueteRepository.save(savedEnquete);
+
+            List<User> clients = userService.getUsersByRole(ERole.ROLE_Client);
+            for (User client : clients) {
+                String enqueteLink = "http://localhost:5173/enquete/respond/" + savedEnquete.getId() + "?userId=" + client.getId();
+                emailService.sendEnqueteLink(client.getEmail(), enqueteLink);
+            }
+        }
+
+        return ResponseEntity.status(HttpStatus.CREATED).body(savedEnquete);
     }
+
 
 
 

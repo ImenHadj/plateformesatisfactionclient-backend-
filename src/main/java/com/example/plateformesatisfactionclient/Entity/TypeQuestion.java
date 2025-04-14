@@ -25,8 +25,6 @@ public enum TypeQuestion {
     MATRICE,            // Réponses sous forme de tableau (ex: notation de plusieurs critères)
     CAPTCHA,            // Sécurité anti-bot
     QR_CODE,            // Scanne un QR code et enregistre le résultat
-    AUDIO,              // Réponse sous forme d’enregistrement vocal
-    VIDEO,              // Réponse sous forme de vidéo
     IMAGE,              // Réponse sous forme de photo prise avec la caméra
     DESSIN,             // Réponse sous forme de dessin libre (ex: signature électronique)
     CODE_PIN,           // Saisie sécurisée d’un code à 4-6 chiffres (ex: validation bancaire)

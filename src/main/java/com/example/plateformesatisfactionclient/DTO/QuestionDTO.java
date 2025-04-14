@@ -38,4 +38,12 @@ public class QuestionDTO {
     }
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
+
+    public List<String> getOptions() {
+        return options;
+    }
+
+    public void setOptions(List<String> options) {
+        this.options = options;
+    }
 }

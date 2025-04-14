@@ -3,6 +3,7 @@ package com.example.plateformesatisfactionclient.DTO;
 import com.example.plateformesatisfactionclient.Entity.Question;
 import jakarta.persistence.Entity;
 
+import java.time.LocalDateTime;
 import java.util.List;
 public class EnqueteResponseDTO {
 
@@ -11,6 +12,17 @@ public class EnqueteResponseDTO {
     private List<QuestionDTO> questions; // Utiliser une liste de QuestionDTO
 
     // Getters et setters
+
+    private LocalDateTime dateExpiration; // ✅ Ajout ici
+
+    // Getters et setters
+    public LocalDateTime getDateExpiration() {
+        return dateExpiration;
+    }
+
+    public void setDateExpiration(LocalDateTime dateExpiration) {
+        this.dateExpiration = dateExpiration;
+    }
     public String getTitre() {
         return titre;
     }

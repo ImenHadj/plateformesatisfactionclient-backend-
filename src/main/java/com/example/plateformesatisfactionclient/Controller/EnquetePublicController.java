@@ -51,6 +51,7 @@ public class EnquetePublicController {
         EnqueteResponseDTO enqueteResponseDTO = new EnqueteResponseDTO();
         enqueteResponseDTO.setTitre(enquete.getTitre());
         enqueteResponseDTO.setDescription(enquete.getDescription());
+        enqueteResponseDTO.setDateExpiration(enquete.getDateExpiration()); // ✅ Ajout ici
 
         List<QuestionDTO> questionDTOs = enquete.getQuestions().stream()
                 .map(question -> {
@@ -58,7 +59,7 @@ public class EnquetePublicController {
                     dto.setId(question.getId()); // Ajout de l'ID
                     dto.setTexte(question.getTexte());
                     dto.setType(question.getType());
-                    //dto.setOptions(question.getOptions()); // Si vous avez des options
+                    dto.setOptions(question.getOptions()); // Si vous avez des options
                     return dto;
                 })
                 .collect(Collectors.toList());
@@ -72,12 +73,11 @@ public class EnquetePublicController {
 
     @PermitAll
 
-    @PostMapping("/respond/{enqueteId}") // Chemin complet: /enquete/respond/30
+    @PostMapping("/respond/{enqueteId}")
     public ResponseEntity<String> repondreEnquete(
             @PathVariable Long enqueteId,
             @RequestParam Long userId,
             @RequestBody List<ReponseDTO> reponsesDTO) {
-
         try {
             enqueteService.enregistrerReponses(enqueteId, userId, reponsesDTO);
             return ResponseEntity.ok("Réponses enregistrées");
@@ -85,6 +85,8 @@ public class EnquetePublicController {
             return ResponseEntity.badRequest().body(e.getMessage());
         }
     }
+
+
 
 }
 
